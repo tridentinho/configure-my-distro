@@ -4,6 +4,17 @@
 source "$(dirname "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")")/scripts/common.sh"
 
 configure_ssh() {
+    local FORCE=false
+
+    # Processa argumentos
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --force) FORCE=true ;;
+            *) error "Argumento inválido: $1"; return 1 ;;
+        esac
+        shift
+    done
+
     log "Configurando permissões das chaves SSH..."
 
     # Configura para o usuário atual (não root)
@@ -15,6 +26,17 @@ configure_ssh() {
 
     local USER_HOME="/home/$CURRENT_USER"
     local SSH_DIR="$USER_HOME/.ssh"
+
+    # Verifica se o diretório .ssh já existe e tem conteúdo
+    if [ -d "$SSH_DIR" ] && [ "$(ls -A $SSH_DIR 2>/dev/null)" ] && [ "$FORCE" = false ]; then
+        log "Diretório .ssh já existe e não está vazio. Use --force para sobrescrever."
+        return 0
+    fi
+
+    # Cria o diretório .ssh se não existir
+    if [ ! -d "$SSH_DIR" ]; then
+        mkdir -p "$SSH_DIR"
+    fi
 
     # Instruções para o usuário
     echo -e "\nAntes de continuar, por favor:"
@@ -56,4 +78,4 @@ configure_ssh() {
 }
 
 # Executa a configuração
-configure_ssh
+configure_ssh "$@"

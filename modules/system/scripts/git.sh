@@ -56,6 +56,7 @@ configure_git() {
     sudo -u $CURRENT_USER git config --global init.defaultBranch "main"
     sudo -u $CURRENT_USER git config --global pull.rebase false
     sudo -u $CURRENT_USER git config --global push.autoSetupRemote true
+    sudo -u $CURRENT_USER git config --global core.filemode false
 
     # Mostra as configurações
     log "Configurações do Git:"

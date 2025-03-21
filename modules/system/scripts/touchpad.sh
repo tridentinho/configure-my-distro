@@ -6,15 +6,30 @@ source "$(dirname "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")")/sc
 configure_touchpad() {
     log "Configurando touchpad..."
 
-    # Verifica se já foi configurado
-    if [ -f "/usr/local/bin/configure-touchpad.sh" ] && [ -f "/etc/udev/rules.d/90-touchpad.rules" ]; then
+    # Verifica se o Hyprland está instalado
+    if ! command -v hyprctl &> /dev/null; then
+        error "Hyprland não está instalado. Por favor, instale o Hyprland primeiro."
+        return 1
+    fi
+
+    # Verifica se já foi configurado e se não está em modo forçado
+    if [ -f "/usr/local/bin/configure-touchpad.sh" ] && [ -f "/etc/udev/rules.d/90-touchpad.rules" ] && [ "$1" != "--force" ]; then
         log "Touchpad já está configurado"
+        log "Use --force para reconfigurar"
         return 0
+    fi
+
+    # Se estiver em modo forçado, remove configurações anteriores
+    if [ "$1" == "--force" ]; then
+        log "Modo forçado: removendo configurações anteriores..."
+        rm -f "/usr/local/bin/configure-touchpad.sh"
+        rm -f "/etc/udev/rules.d/90-touchpad.rules"
+        rm -f "/etc/libinput/local-overrides.quirks"
     fi
 
     # Instala dependências necessárias
     log "Instalando dependências..."
-    apt install -y xinput libinput-tools dconf-cli gsettings-desktop-schemas
+    apt install -y libinput-tools
 
     # Configura para o usuário atual (não root)
     local CURRENT_USER=$SUDO_USER
@@ -25,48 +40,53 @@ configure_touchpad() {
 
     log "Aplicando configurações do touchpad para o usuário $CURRENT_USER..."
 
-    # 1. Configuração via gsettings
-    log "Aplicando configurações via gsettings..."
-    sudo -u $CURRENT_USER dbus-launch gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click false
-    sudo -u $CURRENT_USER dbus-launch gsettings set org.gnome.desktop.peripherals.touchpad click-method 'fingers'
-    sudo -u $CURRENT_USER dbus-launch gsettings set org.gnome.desktop.peripherals.touchpad send-events 'enabled'
+    # 1. Configuração via Hyprland
+    log "Aplicando configurações via Hyprland..."
+    local HYPR_CONFIG_DIR="/home/$CURRENT_USER/.config/hypr"
+    mkdir -p "$HYPR_CONFIG_DIR"
 
-    # 2. Configuração via dconf
-    log "Aplicando configurações via dconf..."
-    sudo -u $CURRENT_USER dbus-launch dconf write /org/gnome/desktop/peripherals/touchpad/tap-to-click false
-    sudo -u $CURRENT_USER dbus-launch dconf write /org/gnome/desktop/peripherals/touchpad/click-method "'fingers'"
+    # Adiciona configurações do touchpad ao arquivo de configuração do Hyprland
+    cat >> "$HYPR_CONFIG_DIR/hyprland.conf" << EOF
 
-    # 3. Configuração via X11
-    log "Criando configuração do X11..."
-    local XORG_CONF_DIR="/usr/share/X11/xorg.conf.d"
-    local TOUCHPAD_CONF="$XORG_CONF_DIR/90-touchpad.conf"
-    
-    mkdir -p "$XORG_CONF_DIR"
-    cat > "$TOUCHPAD_CONF" << EOF
-Section "InputClass"
-        Identifier "touchpad"
-        MatchIsTouchpad "on"
-        Driver "libinput"
-        Option "Tapping" "off"
-        Option "ClickMethod" "clickfinger"
-        Option "TappingButtonMap" "lrm"
-EndSection
+# Configurações do Touchpad
+input {
+    kb_layout = br
+    kb_variant =
+    kb_model =
+    kb_options =
+    kb_rules =
+
+    follow_mouse = 1
+    touchpad {
+        natural_scroll = true
+        disable_while_typing = true
+        tap-to-click = false
+        clickfinger_behavior = true
+        middle_button_emulation = false
+        tap_button_map = lrm
+    }
+    sensitivity = 0
+}
 EOF
 
-    # 4. Configuração imediata via xinput
-    log "Aplicando configurações via xinput..."
-    local TOUCHPAD_ID=$(xinput list | grep -i touchpad | grep -o 'id=[0-9]*' | cut -d'=' -f2)
+    # 2. Configuração via libinput
+    log "Criando configuração do libinput..."
+    local LIBINPUT_CONF_DIR="/etc/libinput"
+    mkdir -p "$LIBINPUT_CONF_DIR"
     
-    if [ ! -z "$TOUCHPAD_ID" ]; then
-        xinput set-prop "$TOUCHPAD_ID" "libinput Tapping Enabled" 0
-        xinput set-prop "$TOUCHPAD_ID" "libinput Click Method Enabled" 0 1
-    fi
+    cat > "$LIBINPUT_CONF_DIR/local-overrides.quirks" << EOF
+[Touchpad]
+MatchUdevType=touchpad
+AttrTappingEnabled=0
+AttrClickMethod=1
+AttrTappingButtonMap=1
+AttrNaturalScrollingEnabled=1
+EOF
 
-    # Cria arquivo de regras udev para persistência
+    # 3. Configuração via udev
     log "Criando regras udev..."
     cat > "/etc/udev/rules.d/90-touchpad.rules" << EOF
-ACTION=="add|change", KERNEL=="event[0-9]*", SUBSYSTEM=="input", ATTR{name}=="*Touchpad*", RUN+="/usr/bin/xinput set-prop \$name 'libinput Tapping Enabled' 0"
-ACTION=="add|change", KERNEL=="event[0-9]*", SUBSYSTEM=="input", ATTR{name}=="*Touchpad*", RUN+="/usr/bin/xinput set-prop \$name 'libinput Click Method Enabled' 0 1"
+ACTION=="add|change", KERNEL=="event[0-9]*", SUBSYSTEM=="input", ATTR{name}=="*Touchpad*", ENV{LIBINPUT_DEVICE_GROUP}="touchpad"
 EOF
 
     log "Recarregando regras udev..."
@@ -78,15 +98,19 @@ EOF
     cat > "$SCRIPT_PATH" << 'EOF'
 #!/bin/bash
 sleep 2  # Aguarda o sistema inicializar completamente
-xinput set-prop "$(xinput list | grep -i touchpad | cut -d'=' -f2 | cut -f1)" "libinput Tapping Enabled" 0
-xinput set-prop "$(xinput list | grep -i touchpad | cut -d'=' -f2 | cut -f1)" "libinput Click Method Enabled" 0 1
-gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click false
-gsettings set org.gnome.desktop.peripherals.touchpad click-method 'fingers'
+
+# Configura o touchpad via libinput
+for device in $(libinput list-devices | grep -A1 "Touchpad" | grep -o "event[0-9]*"); do
+    libinput-device-calibrate "/dev/input/$device"
+done
+
+# Recarrega as configurações do Hyprland
+hyprctl reload
 EOF
 
     chmod +x "$SCRIPT_PATH"
 
-    # Cria arquivo de autostart atualizado
+    # Cria arquivo de autostart
     create_autostart "$SCRIPT_PATH"
 
     log "Configuração do touchpad concluída!"
@@ -120,4 +144,4 @@ EOF
 }
 
 # Executa as configurações
-configure_touchpad 
+configure_touchpad "$1"

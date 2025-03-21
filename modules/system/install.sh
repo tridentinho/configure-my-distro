@@ -14,11 +14,17 @@ if ! command -v git &> /dev/null; then
     apt-get install -y git
 fi
 
-# Lista de configurações do sistema
+# Lista de configurações do sistema (ordem de dependência)
 configs=(
-    "touchpad"
-    "ssh_min"
     "git"
+    "ssh_min"
+    "hyprland"  # Primeiro instala o Hyprland
+    "touchpad"  # Depois configura o touchpad
+    "forticlient"  # Instala o FortiClient VPN
+    "remmina"  # Instala o Remmina
+    "dbeaver"  # Instala o DBeaver
+    "insync"  # Instala o Insync
+    "vscode"  # Instala o Visual Studio Code
     # Adicione mais configurações aqui
 )
 
