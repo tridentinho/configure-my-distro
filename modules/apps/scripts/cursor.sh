@@ -65,7 +65,7 @@ create_desktop_entry() {
     cat > "$DESKTOP_FILE" << EOF
 [Desktop Entry]
 Name=Cursor
-Exec=$CURSOR_PATH --no-sandbox
+Exec=$CURSOR_PATH --no-sandbox&
 Icon=$ICON_PATH
 Type=Application
 Categories=Development;IDE

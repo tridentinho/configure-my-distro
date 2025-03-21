@@ -20,11 +20,7 @@ configs=(
     "ssh_min"
     "hyprland"  # Primeiro instala o Hyprland
     "touchpad"  # Depois configura o touchpad
-    "forticlient"  # Instala o FortiClient VPN
-    "remmina"  # Instala o Remmina
-    "dbeaver"  # Instala o DBeaver
-    "insync"  # Instala o Insync
-    "vscode"  # Instala o Visual Studio Code
+    "envs"  # Configura variáveis de ambiente e aliases
     # Adicione mais configurações aqui
 )
 
