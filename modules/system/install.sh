@@ -21,6 +21,7 @@ configs=(
     "hyprland"  # Primeiro instala o Hyprland
     "touchpad"  # Depois configura o touchpad
     "envs"  # Configura variáveis de ambiente e aliases
+    "docker"  # Instala Docker CLI e Docker Compose
     # Adicione mais configurações aqui
 )
 

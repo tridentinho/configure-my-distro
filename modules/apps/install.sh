@@ -15,6 +15,7 @@ apps=(
     "forticlient"  # Instala o FortiClient VPN
     "insync"  # Instala o Insync
     "remmina"  # Instala o Remmina
+    "spotify"  # Instala o Spotify
     "vscode"  # Instala o Visual Studio Code
     # Adicione mais aplicativos aqui
 )
