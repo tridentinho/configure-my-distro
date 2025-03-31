@@ -22,6 +22,7 @@ configs=(
     "touchpad"  # Depois configura o touchpad
     "envs"  # Configura variáveis de ambiente e aliases
     "docker"  # Instala Docker CLI e Docker Compose
+    "github_cli"  # Instala o GitHub CLI
     # Adicione mais configurações aqui
 )
 

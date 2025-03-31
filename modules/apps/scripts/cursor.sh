@@ -3,6 +3,36 @@
 # Importa funções comuns
 source "$(dirname "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")")/scripts/common.sh"
 
+uninstall_cursor() {
+    local USER_HOME=$(eval echo ~${SUDO_USER})
+    local APPS_DIR="$USER_HOME/Applications"
+    local CURSOR_PATH="$APPS_DIR/Cursor.AppImage"
+    local DESKTOP_FILE="$USER_HOME/.local/share/applications/cursor.desktop"
+    local ICON_PATH="$APPS_DIR/cursor.png"
+
+    log "Removendo instalação existente do Cursor..."
+    
+    # Remove o arquivo AppImage
+    if [ -f "$CURSOR_PATH" ]; then
+        rm -f "$CURSOR_PATH"
+        log "Arquivo AppImage do Cursor removido."
+    fi
+    
+    # Remove o ícone
+    if [ -f "$ICON_PATH" ]; then
+        rm -f "$ICON_PATH"
+        log "Ícone do Cursor removido."
+    fi
+    
+    # Remove o arquivo desktop
+    if [ -f "$DESKTOP_FILE" ]; then
+        rm -f "$DESKTOP_FILE"
+        log "Entrada desktop do Cursor removida."
+    fi
+    
+    log "Desinstalação do Cursor concluída."
+}
+
 install_cursor() {
     local USER_HOME=$(eval echo ~${SUDO_USER})
     local APPS_DIR="$USER_HOME/Applications"
@@ -65,7 +95,7 @@ create_desktop_entry() {
     cat > "$DESKTOP_FILE" << EOF
 [Desktop Entry]
 Name=Cursor
-Exec=$CURSOR_PATH --no-sandbox&
+Exec=$CURSOR_PATH --no-sandbox --disable-gpu
 Icon=$ICON_PATH
 Type=Application
 Categories=Development;IDE
@@ -75,6 +105,12 @@ EOF
     chown ${SUDO_USER}:${SUDO_USER} "$DESKTOP_FILE"
     chmod 644 "$DESKTOP_FILE"
 }
+
+# Processa argumentos da linha de comando
+if [ "$1" = "--reinstall" ]; then
+    log "Iniciando reinstalação do Cursor..."
+    uninstall_cursor
+fi
 
 # Executa a instalação
 install_cursor 

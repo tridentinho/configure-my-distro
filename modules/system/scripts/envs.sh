@@ -25,7 +25,7 @@ configure_envs() {
 
     # Define os aliases a serem adicionados
     declare -A ALIASES=(
-        ["cursor"]='$HOME/Applications/Cursor.AppImage --no-sandbox $@'
+        ["cursor"]='$HOME/Applications/Cursor.AppImage --no-sandbox --disable-gpu $@'
     )
 
     # Define as variáveis de ambiente a serem adicionadas
