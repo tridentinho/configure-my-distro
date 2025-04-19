@@ -17,6 +17,9 @@ apps=(
     "remmina"  # Instala o Remmina
     "spotify"  # Instala o Spotify
     "vscode"  # Instala o Visual Studio Code
+    "cursor"  # Instala o Cursor
+    "postman"  # Instala o Postman
+    "notion"  # Instala o Notion
     # Adicione mais aplicativos aqui
 )
 
